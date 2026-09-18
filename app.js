@@ -241,6 +241,63 @@ function generateSteps(rawQ){
   return { steps, decisions, answer: synthesizeAnswer(rawQ, specialists) };
 }
 
+// ---- Voices (Web Speech API — client-side only, no keys, no backend) ----
+
+const VOICE_PREFS = {
+  desk: { names: ["Google UK English Male", "Microsoft David", "Daniel", "Fred", "Aaron"], pitch: 0.85, rate: 0.95 },
+  michael: { names: ["Google UK English Male", "Microsoft George", "Daniel", "Arthur"], pitch: 0.95, rate: 1.0 },
+  stu: { names: ["Google US English", "Microsoft Mark", "Alex", "Fred"], pitch: 1.0, rate: 1.05 },
+  sara: { names: ["Google UK English Female", "Microsoft Zira", "Samantha", "Victoria", "Kate"], pitch: 1.15, rate: 1.0 },
+  casey: { names: ["Google español", "Microsoft Hazel", "Moira", "Tessa", "Karen"], pitch: 1.05, rate: 1.1 },
+  tim: { names: ["Google US English", "Microsoft David", "Alex"], pitch: 1.0, rate: 1.0 }
+};
+
+let voicesEnabled = true;
+let resolvedVoices = {};
+
+function resolveVoices(){
+  if(!("speechSynthesis" in window)) return;
+  const all = window.speechSynthesis.getVoices();
+  if(!all.length) return;
+  for(const key in VOICE_PREFS){
+    const prefs = VOICE_PREFS[key].names;
+    let found = null;
+    for(const name of prefs){
+      found = all.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
+      if(found) break;
+    }
+    if(!found) found = all.find(v => /^en/i.test(v.lang)) || all[0];
+    resolvedVoices[key] = found;
+  }
+}
+
+if("speechSynthesis" in window){
+  resolveVoices();
+  window.speechSynthesis.onvoiceschanged = resolveVoices;
+}
+
+function speakStep(step){
+  const card = document.querySelector(".p-" + step.p);
+  if(!voicesEnabled || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(step.text);
+  const prefs = VOICE_PREFS[step.p] || VOICE_PREFS.tim;
+  const voice = resolvedVoices[step.p];
+  if(voice) u.voice = voice;
+  u.pitch = prefs.pitch;
+  u.rate = prefs.rate;
+  if(card) card.classList.add("speaking");
+  const clear = () => { if(card) card.classList.remove("speaking"); };
+  u.onend = clear;
+  u.onerror = clear;
+  window.speechSynthesis.speak(u);
+}
+
+function stopSpeaking(){
+  if("speechSynthesis" in window) window.speechSynthesis.cancel();
+  document.querySelectorAll(".rcard.speaking").forEach(r => r.classList.remove("speaking"));
+}
+
 // ---- UI wiring ----
 
 const PLABEL = { desk: "The Desk", michael: "Michael", stu: "Stu", sara: "Sara", casey: "Casey", tim: "You" };
@@ -316,6 +373,7 @@ function renderStep(step){
   transcript.appendChild(div);
   div.scrollIntoView({ behavior: "smooth", block: "end" });
   setActive(step.p);
+  speakStep(step);
 }
 
 function renderDecisions(decisions){
@@ -338,9 +396,15 @@ function updateMeta(){
 }
 
 function stopAutoplay(){
-  clearInterval(timer);
+  clearTimeout(timer);
   playing = false;
   playBtn.textContent = "▶ Auto-advance";
+}
+
+function paceDelay(step){
+  const multiplier = parseFloat(document.getElementById("speed").value);
+  const len = (step && step.text ? step.text.length : 40);
+  return Math.min(9000, Math.max(1400, 500 + len * 38 * multiplier));
 }
 
 function revealAnswer(){
@@ -364,6 +428,7 @@ function stepForward(){
 
 function stepBack(){
   stopAutoplay();
+  stopSpeaking();
   if(answerCard.style.display === "block"){
     answerCard.style.display = "none";
     nextBtn.disabled = false;
@@ -378,17 +443,24 @@ function stepBack(){
   nextBtn.textContent = "Next ▶";
 }
 
+function autoTick(){
+  stepForward();
+  if(playing && idx < currentSteps.length){
+    timer = setTimeout(autoTick, paceDelay(currentSteps[idx - 1]));
+  }
+}
+
 function startAutoplay(){
   if(!currentSteps.length) return;
-  clearInterval(timer);
+  clearTimeout(timer);
   playing = true;
   playBtn.textContent = "⏸ Pause";
-  const speed = parseInt(document.getElementById("speed").value, 10);
-  timer = setInterval(stepForward, speed);
+  autoTick();
 }
 
 function run(question){
-  clearInterval(timer);
+  clearTimeout(timer);
+  stopSpeaking();
   playing = false;
   playBtn.textContent = "▶ Auto-advance";
   const { steps, decisions, answer } = generateSteps(question);
@@ -435,5 +507,14 @@ document.getElementById("restartBtn").addEventListener("click", () => {
   const val = qbox.value.trim();
   if(val) run(val);
 });
+
+const voiceToggle = document.getElementById("voiceToggle");
+if(voiceToggle){
+  voicesEnabled = voiceToggle.checked;
+  voiceToggle.addEventListener("change", () => {
+    voicesEnabled = voiceToggle.checked;
+    if(!voicesEnabled) stopSpeaking();
+  });
+}
 
 run("Build the monthly forecast deck");
