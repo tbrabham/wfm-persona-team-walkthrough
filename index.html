@@ -46,17 +46,21 @@
     <div class="progressbar"><div class="progressfill" id="pfill"></div></div>
     <div class="meta" id="stepLabel">Step 0 / 0</div>
     <div class="controls">
-      <button id="playBtn">&#9654; Play</button>
-      <button id="prevBtn">&#9664; Back</button>
       <button id="nextBtn">Next &#9654;</button>
+      <button id="prevBtn">&#9664; Back</button>
       <button id="restartBtn">&#8635; Restart</button>
-      <select id="speed">
-        <option value="2600">Slow</option>
-        <option value="1600" selected>Normal</option>
-        <option value="900">Fast</option>
+      <button id="playBtn">&#9654; Auto-advance</button>
+      <select id="speed" title="Auto-advance speed">
+        <option value="7000">Slow</option>
+        <option value="4500" selected>Normal</option>
+        <option value="2500">Fast</option>
       </select>
     </div>
     <div class="transcript" id="transcript"></div>
+    <div class="answercard" id="answerCard">
+      <div class="lbl">Answer</div>
+      <div class="body" id="answerText"></div>
+    </div>
   </div>
 
   <div class="principles">

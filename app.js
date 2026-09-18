@@ -6,34 +6,39 @@
    - model tiers: sara always opus; michael/stu/casey default sonnet,
      escalate to opus when the task becomes judgment, not just fetch/render
    This engine makes a real routing + model-tier decision from your text.
-   It does not call live data sources — see the caveat in the UI. */
+   It does not call live data sources — data visuals shown are illustrative
+   samples of shape/source, not real figures. */
 
 const RULES = {
   michael: {
-    label: "Michael", role: "librarian", cls: "michael",
+    label: "Michael", role: "librarian",
     keywords: ["who ", "when ", "email", "slack", "jira", "policy", "communicat", "inform", "launch", "ticket", "context", "history", "said", "told", "announce", "confluence", "sharepoint"],
     escalateKeywords: ["ever ", "never ", "any ", "all ", "confirm no", "did anyone", "was it communicated"],
     escalateReason: "multi-source synthesis or an airtight negative claim",
-    pull: "Searches Glean (Slack, email, Jira, Confluence, docs, people) for the relevant facts and returns a cited packet."
+    pull: "Searches Glean — Slack, email, Jira, Confluence, docs, people — for the relevant facts and returns a cited packet.",
+    answerPart: "supporting context pulled from Slack/email/Jira/Confluence, with citations"
   },
   stu: {
-    label: "Stu", role: "cube data", cls: "stu",
+    label: "Stu", role: "cube data",
     keywords: ["cost", "volume", "aht", "occupancy", "forecast", "plan", "budget", "variance", "number", "figure", "cube", "fte", "hours", "dollar", "$", "spend", "cycle"],
     escalateKeywords: ["driver", "breakdown", "decompose", "multiple drivers", "several factors", "mix of", "why is it different"],
     escalateReason: "multi-driver decomposition or an ambiguous mapping",
-    pull: "Pulls cube-exact figures from the Finance Cube “Tables for Forecast Reviews” tab, plus rationale from the adjustment template."
+    pull: "Pulls cube-exact figures from the Finance Cube “Tables for Forecast Reviews” tab, plus rationale from the adjustment template.",
+    answerPart: "cube-exact figures (Volume/AHT/Occupancy/cost) with rationale from the adjustment template"
   },
   sara: {
-    label: "Sara", role: "WFM analyst", cls: "sara",
+    label: "Sara", role: "WFM analyst",
     keywords: ["why", "driv", "stranded", "capacity", "accuracy", "bias", "mape", "shrinkage", "staff", "schedul", "adherence", "service level", " sl ", "asa", "concurrency", "vendor", "efficien", "occupancy"],
-    pull: "Interprets the pulled data, verifies it ties out, and states findings with explicit method and caveats."
+    pull: "Interprets the pulled data, verifies it ties out, and states findings with explicit method and caveats.",
+    answerPart: "a verified, tie-out-checked interpretation with explicit method and caveats"
   },
   casey: {
-    label: "Casey", role: "exec comms", cls: "casey",
+    label: "Casey", role: "exec comms",
     keywords: ["deck", "slide", "presentation", "render", "ppt", "powerpoint", "chart", "build the", "one-pager", "brief", "readout"],
     escalateKeywords: ["leadership", "exec", "board", "sensitive", "framing"],
     escalateReason: "exec-sensitive narrative framing, not routine rendering",
-    pull: "Renders the verified findings into a deck/brief/chart in house style, and runs the completeness gate against the prior version."
+    pull: "Renders the verified findings into a deck/brief/chart in house style, and runs the completeness gate against the prior version.",
+    answerPart: "a rendered deck/brief in house style that passed the completeness gate against the prior version"
   }
 };
 
@@ -51,19 +56,16 @@ function routeQuestion(rawQ){
     if(RULES[key].keywords.some(k => q.includes(k))) active[key] = true;
   }
 
-  // Standing standard: a monthly forecast review always runs the full pipeline.
   const forcedFullPipeline = /monthly (forecast|review)/i.test(rawQ);
   if(forcedFullPipeline){
     active = { stu: true, michael: true, sara: true, casey: true };
   }
 
-  // House rule: Casey never renders numbers Stu/Sara haven't verified.
   if(active.casey){
     active.sara = true;
     if(!active.michael) active.stu = true;
   }
 
-  // A bare causal "why" with no data keyword defaults to context, not numbers.
   if(active.sara && !active.stu && !active.michael){
     active.michael = true;
   }
@@ -87,7 +89,7 @@ function modelFor(key, rawQ){
   return { model: "sonnet", reason: "default tier — " + why };
 }
 
-function directAnswerText(rawQ){
+function directAnswerText(){
   return "This reads as a definition or a judgment call, not a task that needs a specialist's specific capability — no data pull, no cited retrieval, no artifact to produce. Answering directly rather than spending tokens on a specialist for nothing.";
 }
 
@@ -99,15 +101,13 @@ function planLine(decisions, forcedFullPipeline){
   return prefix + parts + ".";
 }
 
-function parallelNote(specialists){
+function parallelExplain(specialists){
   const base = specialists.filter(k => k === "michael" || k === "stu");
-  if(base.length === 2){
-    return "Michael and Stu have no dependency on each other, so dispatching both in parallel.";
-  }
-  return "";
+  if(base.length === 2) return "Michael and Stu have no dependency on each other, so they're dispatched in parallel — not one after the other.";
+  return "Only one base specialist is needed here, so there's nothing to parallelize.";
 }
 
-function dispatchAsk(key, rawQ){
+function dispatchAsk(key){
   if(key === "michael") return "Pull whatever's relevant from Glean for this — docs, Slack, email, Jira, people — and cite it.";
   if(key === "stu") return "Pull the cube-exact figures this needs, plus rationale from the adjustment template.";
   return "";
@@ -133,42 +133,112 @@ function caseyFramingQA(){
   };
 }
 
+// Illustrative-only sample visuals — shape and source, never real figures.
+function visualFor(key){
+  if(key === "stu") return {
+    type: "table",
+    caption: "Sample structure of what Stu extracts",
+    columns: ["Group", "Volume Δ", "AHT Δ", "Occupancy Δ", "Cost Δ"],
+    rows: [
+      ["HP English", "+0.4%", "-0.2%", "-4.1pp", "+$XXXk"],
+      ["VR Host Eng", "-0.1%", "+0.3%", "-1.8pp", "+$XXXk"],
+      ["HP Chat", "+0.2%", "-0.1%", "-2.6pp", "+$XXXk"]
+    ],
+    source: "CurrentFinanceCubeFCST2026.xlsx · Tables for Forecast Reviews"
+  };
+  if(key === "michael") return {
+    type: "thread",
+    caption: "Sample structure of what Michael retrieves",
+    items: [
+      { source: "Slack #example-channel", date: "recent", snippet: "Thread confirming a launch/rollout date and ownership relevant to the question." },
+      { source: "Jira EXAMPLE-1234", date: "recent", snippet: "Ticket status, owner, and scope — whether WFM was looped in." }
+    ]
+  };
+  if(key === "sara") return {
+    type: "checklist",
+    caption: "Sample structure of Sara's reconciliation pass",
+    items: [
+      { ok: true, text: "Ties to the cube group total" },
+      { ok: true, text: "No stale or byte-copied column vs. prior cycle" },
+      { ok: false, text: "Caveat noted where the finding isn't fully realized yet" }
+    ]
+  };
+  if(key === "casey") return {
+    type: "slide",
+    caption: "Sample structure of what Casey renders",
+    title: "Example slide — headline metric + driver",
+    bullets: ["Metric Δ vs. prior cycle", "Trend, 6 months", "Driver callout + owner"]
+  };
+  return null;
+}
+
+function synthesizeAnswer(rawQ, specialists){
+  if(specialists.length === 0){
+    return "Answered directly — this didn't need a specialist's pull, retrieval, or produced artifact, just a definition or judgment call from context already on hand.";
+  }
+  const parts = specialists.map(k => RULES[k].answerPart);
+  let joined;
+  if(parts.length === 1) joined = parts[0];
+  else joined = parts.slice(0, -1).join("; ") + "; and " + parts[parts.length - 1];
+  return "The answer to “" + rawQ + "” would be assembled from: " + joined + ". Every figure carries its source, so the final answer is audit-ready end to end — nothing here is invented or assumed.";
+}
+
 function generateSteps(rawQ){
   const { specialists, forcedFullPipeline } = routeQuestion(rawQ);
   const steps = [{ p: "tim", text: rawQ }];
 
   if(specialists.length === 0){
-    steps.push({ p: "desk", text: directAnswerText(rawQ) });
-    return { steps, decisions: [], directAnswer: true };
+    steps.push({ p: "desk", text: directAnswerText() });
+    return { steps, decisions: [], answer: synthesizeAnswer(rawQ, specialists) };
   }
 
   const decisions = specialists.map(k => ({ key: k, ...modelFor(k, rawQ) }));
-  steps.push({ p: "desk", text: planLine(decisions, forcedFullPipeline) + " " + parallelNote(specialists) });
+  steps.push({
+    p: "desk",
+    text: planLine(decisions, forcedFullPipeline),
+    explain: parallelExplain(specialists)
+  });
 
   const base = specialists.filter(k => k === "michael" || k === "stu");
-  base.forEach(k => steps.push({ p: "desk", to: k, text: dispatchAsk(k, rawQ), tag: "ask" }));
-  base.forEach(k => steps.push({ p: k, text: RULES[k].pull, tag: "data" }));
+  base.forEach(k => steps.push({
+    p: "desk", to: k, text: dispatchAsk(k), tag: "ask",
+    explain: "Dispatched because the question matched " + RULES[k].label + "'s specific capability — not by default."
+  }));
+  base.forEach(k => {
+    const d = decisions.find(x => x.key === k);
+    steps.push({
+      p: k, text: RULES[k].pull, tag: "data",
+      explain: "Model: " + d.model + " — " + d.reason,
+      visual: visualFor(k)
+    });
+  });
 
   if(specialists.includes("sara")){
     if(base.length){
       const other = base[0];
       const qa = clarifyingQA(other);
-      steps.push({ p: "sara", to: other, text: qa.ask, tag: "ask" });
+      steps.push({ p: "sara", to: other, text: qa.ask, tag: "ask", explain: "Sara never takes another specialist's pull at face value — she checks it before building on it." });
       steps.push({ p: other, text: qa.answer });
     }
-    steps.push({ p: "sara", text: RULES.sara.pull });
+    const d = decisions.find(x => x.key === "sara");
+    steps.push({ p: "sara", text: RULES.sara.pull, tag: "data", explain: "Model: " + d.model + " — " + d.reason, visual: visualFor("sara") });
   }
 
   if(specialists.includes("casey")){
     const qa = caseyFramingQA();
-    steps.push({ p: "casey", to: "sara", text: qa.ask, tag: "ask" });
+    steps.push({ p: "casey", to: "sara", text: qa.ask, tag: "ask", explain: "Casey checks narrative framing with Sara before rendering — numbers and words have to agree." });
     steps.push({ p: "sara", text: qa.answer });
-    steps.push({ p: "casey", text: RULES.casey.pull, tag: "gate" });
+    const d = decisions.find(x => x.key === "casey");
+    steps.push({ p: "casey", text: RULES.casey.pull, tag: "gate", explain: "Model: " + d.model + " — " + d.reason, visual: visualFor("casey") });
   }
 
-  steps.push({ p: "desk", text: "Assembling the answer for you — routing and model tiers are logged below. This run is a decision-logic simulation, not a live data pull; a real run would carry sourced figures and citations through every step." });
+  steps.push({
+    p: "desk",
+    text: "Assembling the answer for you — every step above is logged with its model tier and reasoning.",
+    explain: "This run is a decision-logic simulation, not a live data pull. A real run would carry sourced figures and citations through every step above."
+  });
 
-  return { steps, decisions, directAnswer: false };
+  return { steps, decisions, answer: synthesizeAnswer(rawQ, specialists) };
 }
 
 // ---- UI wiring ----
@@ -183,8 +253,13 @@ const err = document.getElementById("err");
 const decisionsPanel = document.getElementById("decisions");
 const decisionsBody = document.getElementById("decisionsBody");
 const qbox = document.getElementById("qbox");
+const answerCard = document.getElementById("answerCard");
+const answerText = document.getElementById("answerText");
+const nextBtn = document.getElementById("nextBtn");
+const playBtn = document.getElementById("playBtn");
 
 let currentSteps = [];
+let currentAnswer = "";
 let idx = 0;
 let playing = false;
 let timer = null;
@@ -197,6 +272,30 @@ function setActive(p){
   }
 }
 
+function renderVisual(visual){
+  if(!visual) return "";
+  let inner = "";
+  if(visual.type === "table"){
+    inner = '<table class="vtable"><thead><tr>' + visual.columns.map(c => "<th>" + c + "</th>").join("") + "</tr></thead><tbody>" +
+      visual.rows.map(r => "<tr>" + r.map(c => "<td>" + c + "</td>").join("") + "</tr>").join("") +
+      "</tbody></table>" +
+      '<div class="vsource">Source: ' + visual.source + "</div>";
+  } else if(visual.type === "thread"){
+    inner = visual.items.map(it =>
+      '<div class="vthread-item"><div class="vthread-src">' + it.source + ' <span class="vdate">' + it.date + "</span></div>" +
+      '<div class="vthread-snip">' + it.snippet + "</div></div>"
+    ).join("");
+  } else if(visual.type === "checklist"){
+    inner = '<ul class="vchecklist">' + visual.items.map(it =>
+      '<li class="' + (it.ok ? "ok" : "warn") + '">' + (it.ok ? "✓" : "⚠") + " " + it.text + "</li>"
+    ).join("") + "</ul>";
+  } else if(visual.type === "slide"){
+    inner = '<div class="vslide"><div class="vslide-title">' + visual.title + '</div><ul class="vslide-bullets">' +
+      visual.bullets.map(b => "<li>" + b + "</li>").join("") + "</ul></div>";
+  }
+  return '<div class="visual"><div class="visual-caption">' + visual.caption + ' <span class="illustrative">illustrative, not real figures</span></div>' + inner + "</div>";
+}
+
 function renderStep(step){
   const div = document.createElement("div");
   div.className = "msg " + step.p;
@@ -205,11 +304,14 @@ function renderStep(step){
   if(step.tag === "ask") tagHtml = '<span class="tag ask">question</span>';
   if(step.tag === "data") tagHtml = '<span class="tag data">data pulled</span>';
   if(step.tag === "gate") tagHtml = '<span class="tag gate">completeness gate</span>';
+  const explainHtml = step.explain ? '<div class="explain"><i>' + step.explain + "</i></div>" : "";
   div.innerHTML =
     '<div class="av">' + AV[step.p] + "</div>" +
     '<div class="body">' +
       '<div class="who">' + PLABEL[step.p] + toHtml + tagHtml + "</div>" +
       '<div class="bubble">' + step.text + "</div>" +
+      explainHtml +
+      renderVisual(step.visual) +
     "</div>";
   transcript.appendChild(div);
   div.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -223,7 +325,7 @@ function renderDecisions(decisions){
   }
   decisionsPanel.style.display = "block";
   decisionsBody.innerHTML = decisions.map(d =>
-    '<tr><td>' + RULES[d.key].label + ' <span class="muted">(' + RULES[d.key].role + ')</span></td>' +
+    "<tr><td>" + RULES[d.key].label + ' <span class="muted">(' + RULES[d.key].role + ")</span></td>" +
     '<td><span class="modeltag ' + d.model + '">' + d.model + "</span></td>" +
     "<td>" + d.reason + "</td></tr>"
   ).join("");
@@ -235,50 +337,71 @@ function updateMeta(){
   pfill.style.width = total ? (Math.min(idx, total) / total * 100) + "%" : "0%";
 }
 
+function stopAutoplay(){
+  clearInterval(timer);
+  playing = false;
+  playBtn.textContent = "▶ Auto-advance";
+}
+
+function revealAnswer(){
+  answerCard.style.display = "block";
+  answerText.textContent = currentAnswer;
+  answerCard.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
 function stepForward(){
   if(idx >= currentSteps.length){
-    clearInterval(timer);
-    playing = false;
-    document.getElementById("playBtn").textContent = "▶ Play";
+    if(answerCard.style.display !== "block") revealAnswer();
+    stopAutoplay();
+    nextBtn.disabled = true;
     return;
   }
   renderStep(currentSteps[idx]);
   idx++;
   updateMeta();
+  if(idx >= currentSteps.length) nextBtn.textContent = "Show answer ▶";
 }
 
 function stepBack(){
-  clearInterval(timer);
-  playing = false;
-  document.getElementById("playBtn").textContent = "▶ Play";
+  stopAutoplay();
+  if(answerCard.style.display === "block"){
+    answerCard.style.display = "none";
+    nextBtn.disabled = false;
+    nextBtn.textContent = "Next ▶";
+    return;
+  }
   if(idx <= 0) return;
   idx--;
   if(transcript.lastChild) transcript.removeChild(transcript.lastChild);
   setActive(idx > 0 ? currentSteps[idx - 1].p : null);
   updateMeta();
+  nextBtn.textContent = "Next ▶";
 }
 
-function startPlaying(){
+function startAutoplay(){
   if(!currentSteps.length) return;
   clearInterval(timer);
   playing = true;
-  document.getElementById("playBtn").textContent = "⏸ Pause";
+  playBtn.textContent = "⏸ Pause";
   const speed = parseInt(document.getElementById("speed").value, 10);
-  stepForward();
   timer = setInterval(stepForward, speed);
 }
 
 function run(question){
   clearInterval(timer);
   playing = false;
-  document.getElementById("playBtn").textContent = "▶ Play";
-  const { steps, decisions } = generateSteps(question);
+  playBtn.textContent = "▶ Auto-advance";
+  const { steps, decisions, answer } = generateSteps(question);
   currentSteps = steps;
+  currentAnswer = answer;
   idx = 0;
   transcript.innerHTML = "";
+  answerCard.style.display = "none";
+  nextBtn.disabled = false;
+  nextBtn.textContent = "Next ▶";
   renderDecisions(decisions);
   updateMeta();
-  startPlaying();
+  stepForward();
 }
 
 document.querySelectorAll(".preset").forEach(btn => {
@@ -301,20 +424,12 @@ document.getElementById("runBtn").addEventListener("click", () => {
 qbox.addEventListener("input", () => { if(qbox.value.trim()) err.style.display = "none"; });
 qbox.addEventListener("keydown", e => { if(e.key === "Enter") document.getElementById("runBtn").click(); });
 
-document.getElementById("playBtn").addEventListener("click", () => {
+playBtn.addEventListener("click", () => {
   if(!currentSteps.length){ err.style.display = "block"; return; }
-  if(playing){
-    playing = false;
-    document.getElementById("playBtn").textContent = "▶ Play";
-    clearInterval(timer);
-  } else {
-    startPlaying();
-  }
+  if(playing) stopAutoplay();
+  else startAutoplay();
 });
-document.getElementById("nextBtn").addEventListener("click", () => {
-  clearInterval(timer); playing = false; document.getElementById("playBtn").textContent = "▶ Play";
-  if(currentSteps.length) stepForward();
-});
+nextBtn.addEventListener("click", () => { stopAutoplay(); if(currentSteps.length) stepForward(); });
 document.getElementById("prevBtn").addEventListener("click", stepBack);
 document.getElementById("restartBtn").addEventListener("click", () => {
   const val = qbox.value.trim();

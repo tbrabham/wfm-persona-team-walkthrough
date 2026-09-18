@@ -119,6 +119,47 @@ h2{font-size:17px; font-weight:600; margin:0 0 10px;}
 .modeltag.opus{background:var(--opus-bg); color:var(--opus-fg);}
 .modeltag.sonnet{background:var(--sonnet-bg); color:var(--sonnet-fg);}
 
+.explain{
+  margin-top:5px; font-size:12.5px; color:var(--text-muted); padding-left:2px;
+}
+.explain i{font-style:normal;}
+
+.visual{
+  margin-top:8px; border:1px solid var(--border); border-radius:8px;
+  background:var(--panel); padding:10px 12px;
+}
+.visual-caption{font-size:11.5px; color:var(--text-muted); margin-bottom:8px;}
+.illustrative{
+  display:inline-block; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.03em;
+  background:var(--gray-bg); color:var(--text-muted); padding:1px 6px; border-radius:4px; margin-left:4px;
+}
+.vtable{width:100%; border-collapse:collapse; font-size:12.5px;}
+.vtable th{text-align:left; font-weight:600; color:var(--text-secondary); padding:5px 8px; border-bottom:1px solid var(--border-strong);}
+.vtable td{padding:5px 8px; border-bottom:1px solid var(--border); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+.vtable tr:last-child td{border-bottom:none;}
+.vsource{font-size:11px; color:var(--text-muted); margin-top:6px;}
+.vthread-item{padding:6px 0; border-bottom:1px solid var(--border);}
+.vthread-item:last-child{border-bottom:none;}
+.vthread-src{font-size:12px; font-weight:600; color:var(--text-secondary);}
+.vdate{font-weight:400; color:var(--text-muted); margin-left:4px;}
+.vthread-snip{font-size:13px; margin-top:2px;}
+.vchecklist{list-style:none; margin:0; padding:0; font-size:13px;}
+.vchecklist li{padding:4px 0; display:flex; gap:6px;}
+.vchecklist li.ok{color:var(--sonnet-fg);}
+.vchecklist li.warn{color:var(--opus-fg);}
+.vslide{border:1px solid var(--border-strong); border-radius:6px; padding:10px 12px; background:var(--gray-bg);}
+.vslide-title{font-size:13px; font-weight:600; margin-bottom:6px;}
+.vslide-bullets{margin:0; padding-left:18px; font-size:12.5px; color:var(--text-secondary);}
+
+.answercard{
+  display:none; border:2px solid var(--accent); border-radius:12px; background:var(--panel);
+  padding:16px; margin-bottom:16px;
+}
+.answercard .lbl{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--accent); margin-bottom:6px;}
+.answercard .body{font-size:15px;}
+#nextBtn{border-color:var(--accent); color:var(--accent); font-weight:600;}
+#nextBtn:disabled{opacity:.5; cursor:default;}
+
 .principles{margin-top:36px;}
 .principles ul{padding-left:20px; font-size:14.5px; color:var(--text-secondary);}
 .principles li{margin-bottom:6px;}
