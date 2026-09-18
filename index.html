@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>How the WFM Forecast Persona Team Works</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <h1>How the WFM forecast persona team works</h1>
+  <p class="sub">Type a real question. This runs the Desk orchestrator's actual routing rules and model-tier logic client-side to show who gets called, in what order, and why.</p>
+  <div class="caveat">This demo runs the real routing / model-tier decision logic in your browser. It does not call live data (Finance Cube, Glean, Trino) &mdash; the transcript shows what each specialist would do and hand off, not fabricated figures.</div>
+
+  <div class="roster" id="roster">
+    <div class="rcard p-desk"><div class="av">D</div><div class="name">The Desk</div><div class="role">orchestrator</div></div>
+    <div class="rcard p-michael"><div class="av">M</div><div class="name">Michael</div><div class="role">librarian</div></div>
+    <div class="rcard p-stu"><div class="av">S</div><div class="name">Stu</div><div class="role">cube data</div></div>
+    <div class="rcard p-sara"><div class="av">S</div><div class="name">Sara</div><div class="role">WFM analyst</div></div>
+    <div class="rcard p-casey"><div class="av">C</div><div class="name">Casey</div><div class="role">exec comms</div></div>
+  </div>
+
+  <h2>Ask the team</h2>
+  <div class="scenarios">
+    <button class="preset">Build the monthly forecast deck</button>
+    <button class="preset">What's driving the cost variance this month?</button>
+    <button class="preset">Why did hotel contacts drop in August?</button>
+    <button class="preset">What is occupancy?</button>
+  </div>
+  <div class="askrow">
+    <input id="qbox" type="text" placeholder="Or type your own question, e.g. is our vendor capacity stranded?" />
+    <button id="runBtn">Run it</button>
+  </div>
+  <div id="err">Enter a question first.</div>
+
+  <div class="decisions" id="decisions">
+    <h2>Model routing decisions</h2>
+    <table>
+      <thead><tr><th>Specialist</th><th>Model</th><th>Why</th></tr></thead>
+      <tbody id="decisionsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="stage">
+    <div class="progressbar"><div class="progressfill" id="pfill"></div></div>
+    <div class="meta" id="stepLabel">Step 0 / 0</div>
+    <div class="controls">
+      <button id="playBtn">&#9654; Play</button>
+      <button id="prevBtn">&#9664; Back</button>
+      <button id="nextBtn">Next &#9654;</button>
+      <button id="restartBtn">&#8635; Restart</button>
+      <select id="speed">
+        <option value="2600">Slow</option>
+        <option value="1600" selected>Normal</option>
+        <option value="900">Fast</option>
+      </select>
+    </div>
+    <div class="transcript" id="transcript"></div>
+  </div>
+
+  <div class="principles">
+    <h2>What's actually deciding this</h2>
+    <ul>
+      <li><strong>Smallest set that adds value.</strong> The Desk only calls a specialist when the question needs that specific capability &mdash; it never runs the full team by reflex.</li>
+      <li><strong>Numbers = cube, rationale = template.</strong> Stu pulls every figure cube-direct; Casey never renders a number Stu or Sara hasn't verified.</li>
+      <li><strong>Model tier follows judgment, not volume.</strong> Sara is always Opus &mdash; low volume, high judgment, accuracy is the whole value. Michael, Stu, and Casey default to Sonnet and escalate to Opus only when a fetch or render turns into a judgment call (multi-source synthesis, ambiguous mapping, exec-sensitive framing).</li>
+      <li><strong>Personas check each other.</strong> Sara re-verifies Stu's pull and Michael's context; Casey checks framing with Sara before rendering.</li>
+      <li><strong>A monthly forecast review always runs the full pipeline</strong> &mdash; that's a standing standard, not a per-task decision.</li>
+    </ul>
+  </div>
+
+  <footer>Internal tool for the WFM forecasting team &middot; routing/model logic mirrors the real Desk/Michael/Stu/Sara/Casey persona team built on Claude Code &middot; this page runs the decision logic only, with no live data connection.</footer>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
