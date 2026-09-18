@@ -248,7 +248,7 @@ const VOICE_PREFS = {
   michael: { names: ["Google UK English Male", "Microsoft George", "Daniel", "Arthur"], pitch: 0.95, rate: 1.0 },
   stu: { names: ["Google US English", "Microsoft Mark", "Alex", "Fred"], pitch: 1.0, rate: 1.05 },
   sara: { names: ["Google UK English Female", "Microsoft Zira", "Samantha", "Victoria", "Kate"], pitch: 1.15, rate: 1.0 },
-  casey: { names: ["Google español", "Microsoft Hazel", "Moira", "Tessa", "Karen"], pitch: 1.05, rate: 1.1 },
+  casey: { names: ["Microsoft Hazel", "Moira", "Tessa", "Karen", "Google US English"], pitch: 1.05, rate: 1.1 },
   tim: { names: ["Google US English", "Microsoft David", "Alex"], pitch: 1.0, rate: 1.0 }
 };
 
@@ -259,14 +259,16 @@ function resolveVoices(){
   if(!("speechSynthesis" in window)) return;
   const all = window.speechSynthesis.getVoices();
   if(!all.length) return;
+  const english = all.filter(v => /^en/i.test(v.lang));
+  const pool = english.length ? english : all;
   for(const key in VOICE_PREFS){
     const prefs = VOICE_PREFS[key].names;
     let found = null;
     for(const name of prefs){
-      found = all.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
+      found = pool.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
       if(found) break;
     }
-    if(!found) found = all.find(v => /^en/i.test(v.lang)) || all[0];
+    if(!found) found = pool[0];
     resolvedVoices[key] = found;
   }
 }
